@@ -1,0 +1,1424 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+<style>:root{color-scheme:light}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>BMC Rumah Yatim x Marketplace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Caveat+Brush&family=Noto+Sans+KR:wght@700;900&display=swap">
+<style>
+/* Konsep: panggung 1920x1080 yang diskalakan ke layar. Gaya buku stiker: tepi tebal, bayangan keras,
+   warna-warna berani, dan kartu miring. Intro memakai nuansa sinematik drama Korea.
+   Tampilan tunggal (gelap di luar panggung) dipilih sengaja untuk presentasi layar penuh. */
+:root{
+  --ink:#16110e; --paper:#fffaf0; --yolk:#ffc93c; --tomato:#ff4f2e; --mint:#35d49b;
+  --sky:#59a8ff; --grape:#7b4dff; --gum:#ff8dc3; --crimson:#c2123a;
+  --f-display:'Bricolage Grotesque','Arial Black',system-ui,sans-serif;
+  --f-body:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-hand:'Caveat Brush','Comic Sans MS',cursive;
+  --f-kr:'Noto Sans KR','Malgun Gothic',sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--ink);color:var(--paper);font-family:var(--f-body);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:4px solid var(--yolk);outline-offset:3px}
+
+/* ---------- Layar mulai (responsif, di luar panggung) ---------- */
+#gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:auto;
+  padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));
+  background:radial-gradient(circle at 18% 22%,rgba(255,201,60,.28),transparent 42%),radial-gradient(circle at 86% 82%,rgba(255,79,46,.28),transparent 46%),var(--ink)}
+.gate-card{width:min(760px,100%);background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:26px;box-shadow:12px 12px 0 var(--yolk);padding:clamp(22px,4vw,48px);display:flex;flex-direction:column;gap:18px;min-width:0}
+.g-kick{margin:0;font:700 14px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--tomato)}
+.gate-card h1{margin:0;font:800 clamp(34px,7vw,76px)/.98 var(--f-display);letter-spacing:-.03em;text-wrap:balance}
+.gate-card h1 span{color:var(--tomato)}
+.g-sub{margin:0;font:600 clamp(16px,2.2vw,21px)/1.45 var(--f-body)}
+.g-btn{align-self:flex-start;background:var(--tomato);color:var(--paper);border:4px solid var(--ink);border-radius:16px;box-shadow:6px 6px 0 var(--ink);padding:16px 34px;font:800 clamp(20px,3vw,28px) var(--f-display);transition:transform .12s,box-shadow .12s}
+.g-btn:hover{transform:translate(-2px,-2px);box-shadow:8px 8px 0 var(--ink)}
+.g-btn:active{transform:translate(4px,4px);box-shadow:2px 2px 0 var(--ink)}
+.g-btn[disabled]{opacity:.6;cursor:wait}
+.g-tips{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.g-tips li{font:700 14px var(--f-body);background:#f1e6cc;border:2px solid var(--ink);border-radius:99px;padding:6px 14px}
+.g-note{margin:0;font:600 14px/1.4 var(--f-body);opacity:.75}
+
+/* ---------- Panggung ---------- */
+#viewport{position:fixed;inset:0;background:var(--ink);overflow:hidden;cursor:default}
+#viewport.idle{cursor:none}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center;transform:translate(-50%,-50%) scale(.5)}
+#world{position:absolute;inset:0;overflow:hidden;background:var(--ink);perspective:2600px}
+.scene{position:absolute;inset:0;visibility:hidden;overflow:hidden;backface-visibility:hidden}
+.scene.on{visibility:visible;z-index:2}
+.scene.entering{visibility:visible;z-index:5}
+#world.frozen .scene *{animation-play-state:paused!important}
+
+/* ---------- Animasi dasar ---------- */
+@keyframes pop{from{opacity:0;translate:0 46px;scale:.93}to{opacity:1;translate:0 0;scale:1}}
+@keyframes wpop{from{opacity:0;translate:0 70px;scale:.7;rotate:-4deg}to{opacity:1;translate:0 0;scale:1;rotate:0deg}}
+@keyframes pop2{from{opacity:0;translate:0 70px;scale:.7}to{opacity:1;translate:0 0;scale:1}}
+@keyframes spin{to{rotate:360deg}}
+@keyframes mq{to{transform:translateX(-50%)}}
+@keyframes drift{from{translate:0 0}to{translate:140px 90px}}
+@keyframes rise{0%{opacity:0;translate:0 0;scale:.6}12%{opacity:1}100%{opacity:0;translate:var(--dx,0) -760px;scale:1.2}}
+@keyframes wob{0%,100%{rotate:-2deg}50%{rotate:2deg}}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -16px}}
+.rv{opacity:0}
+.play .rv{animation:pop .7s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--d,0)*1ms + 420ms)}
+
+/* ---------- Slide umum ---------- */
+.slide{background:var(--bg,var(--yolk));color:var(--ink)}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(22,17,14,.16) 3px,transparent 3.6px);background-size:32px 32px;pointer-events:none;
+  -webkit-mask-image:linear-gradient(135deg,#000 0,transparent 55%);mask-image:linear-gradient(135deg,#000 0,transparent 55%)}
+.page{position:absolute;left:100px;right:100px;top:54px;bottom:74px;display:flex;flex-direction:column;gap:24px;min-height:0}
+.title{margin:0;font:800 84px/1 var(--f-display);letter-spacing:-.03em;color:var(--tt,var(--ink));text-wrap:balance}
+.t-md{font-size:72px}
+.subm{display:inline-block;align-self:flex-start;margin-top:12px;font:400 50px/1.1 var(--f-hand);background:var(--paper);color:var(--ink);border:4px solid var(--ink);padding:2px 22px 4px;border-radius:12px;transform:rotate(-1.5deg);box-shadow:5px 5px 0 var(--ink)}
+.tab{display:inline-block;background:var(--ink);color:var(--paper);font:700 28px var(--f-body);padding:8px 26px;border-radius:999px;letter-spacing:.02em;margin-bottom:10px}
+.card{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:24px;box-shadow:10px 10px 0 var(--ink)}
+.ft{position:absolute;left:100px;right:100px;bottom:42px;display:flex;justify-content:space-between;font:700 22px var(--f-body);letter-spacing:.04em;color:var(--ink);opacity:.78}
+.stk{position:absolute;font:400 52px/1.1 var(--f-hand);background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:14px;padding:4px 22px 6px;box-shadow:7px 7px 0 var(--ink);rotate:var(--r,-5deg);z-index:6;white-space:nowrap}
+.tape{position:absolute;width:130px;height:38px;background:rgba(255,224,130,.88);border:2px solid rgba(22,17,14,.25);top:-18px;left:50%;translate:-50% 0;rotate:-4deg}
+
+/* ---------- 1. Sampul ---------- */
+.cover .burst{position:absolute;left:50%;top:50%;width:1500px;height:1500px;margin:-750px 0 0 -750px;animation:spin 60s linear infinite;opacity:.5;
+  background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.55) 0 7deg,transparent 7deg 22deg)}
+.cover .center{position:absolute;inset:0;display:grid;place-items:center}
+.cover .poster{position:relative;width:1380px;background:var(--paper);border:5px solid var(--ink);border-radius:34px;box-shadow:16px 16px 0 var(--ink);padding:76px 80px 60px;text-align:center}
+.poster .stamp{position:absolute;left:50%;top:-34px;translate:-50% 0;rotate:-3deg;background:var(--tomato);color:var(--paper);font:800 36px var(--f-display);padding:10px 34px;border:4px solid var(--ink);border-radius:12px;letter-spacing:.02em;white-space:nowrap}
+.poster .kicker{margin:0 0 12px;font:700 32px var(--f-body);color:var(--tomato)}
+.poster h1{margin:0;font:800 132px/.94 var(--f-display);letter-spacing:-.04em;text-wrap:balance}
+.poster hr{width:220px;height:8px;background:var(--tomato);border:0;border-radius:4px;margin:32px auto}
+.poster .lead{margin:0 auto;max-width:1060px;font:600 34px/1.42 var(--f-body)}
+.poster .chips{display:flex;gap:20px;justify-content:center;margin-top:36px}
+.chip{font:800 30px var(--f-display);padding:10px 30px;border:4px solid var(--ink);border-radius:99px}
+.chip.a{background:var(--yolk)}.chip.b{background:var(--ink);color:var(--paper)}
+.polas{position:absolute;inset:0;pointer-events:none}
+.pola{position:absolute;width:236px;background:#fffdf6;padding:12px 12px 40px;border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);animation:float 5s ease-in-out infinite}
+.pola img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+.pola span{position:absolute;left:0;right:0;bottom:8px;text-align:center;font:400 28px var(--f-hand)}
+
+/* ---------- 2. Latar belakang ---------- */
+#s2 .grid{display:grid;grid-template-columns:1fr 560px;gap:44px;flex:1;min-height:0;margin-top:10px}
+#s2 .stack{display:flex;flex-direction:column;gap:26px;min-height:0}
+.reason{flex:1;display:flex;gap:28px;align-items:center;padding:20px 34px 20px 26px}
+.reason .ic{flex:none;width:112px;height:112px;border-radius:22px;border:4px solid var(--ink);display:grid;place-items:center;font-size:58px;background:var(--c,var(--yolk))}
+.reason h3{margin:0 0 6px;font:800 40px/1.1 var(--f-display);letter-spacing:-.02em}
+.reason p{margin:0;font:500 28px/1.38 var(--f-body)}
+.target{background:var(--ink);color:var(--paper);border:4px solid var(--ink);border-radius:24px;box-shadow:10px 10px 0 var(--tomato);padding:44px 44px 36px;display:flex;flex-direction:column;justify-content:space-between;gap:20px;position:relative;overflow:hidden}
+.target h3{margin:0;font:700 42px/1.15 var(--f-display);color:var(--yolk);letter-spacing:-.01em}
+.target h3 .big{display:block;font:800 100px/.98 var(--f-display);color:var(--paper);letter-spacing:-.04em;margin-top:10px}
+.target svg{width:100%;height:auto;max-height:290px}
+
+/* ---------- 3. Segmentasi ---------- */
+#s3 .hdr{display:flex;align-items:flex-end;gap:36px}
+.intro{margin:0;font:600 34px/1.35 var(--f-body);max-width:1500px}
+.seg{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr;gap:28px;flex:1;min-height:0}
+.seg .card{grid-column:span 2;padding:22px 26px 22px 104px;position:relative;box-shadow:8px 8px 0 var(--ink);display:flex;flex-direction:column;justify-content:center}
+.seg .card:nth-child(n+4){grid-column:span 3}
+.seg .n{position:absolute;left:24px;top:24px;width:64px;height:64px;border-radius:50%;background:var(--ink);color:var(--yolk);display:grid;place-items:center;font:800 32px var(--f-display)}
+.seg h3{margin:0 0 8px;font:800 37px/1.12 var(--f-display);letter-spacing:-.015em}
+.seg p{margin:0;font:500 31px/1.38 var(--f-body)}
+.ribbon{background:var(--ink);color:var(--paper);border-radius:20px;padding:22px 36px;font:600 32px/1.4 var(--f-body);box-shadow:8px 8px 0 var(--yolk);margin-top:auto}
+.ribbon b{color:var(--yolk);font-weight:800}
+
+/* ---------- 4 & 5. Program ---------- */
+.prog{display:grid;grid-template-columns:1fr 1fr;gap:44px;flex:1;min-height:0;margin-top:6px}
+.pcard{padding:30px 38px 30px;display:flex;flex-direction:column;gap:14px;min-height:0;position:relative}
+.pcard h3{margin:0;font:800 46px/1.08 var(--f-display);letter-spacing:-.025em}
+.pcard ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px;flex:1;justify-content:center}
+.pcard li{position:relative;padding-left:50px;font:600 37px/1.3 var(--f-body)}
+.pcard li::before{content:'';position:absolute;left:0;top:8px;width:30px;height:30px;border-radius:8px;background:var(--bg);border:3px solid var(--ink);rotate:8deg}
+.pcard .shot{margin-top:auto;align-self:center;position:relative;width:auto;max-width:100%;background:#fff;border:4px solid var(--ink);padding:10px 10px 10px;box-shadow:8px 8px 0 var(--ink);rotate:var(--pr,-2deg)}
+.pcard .shot img{display:block;width:auto;max-width:100%;height:286px;object-fit:contain}
+
+/* ---------- 6-9. Strategi per marketplace ---------- */
+.mkt .page{gap:18px;top:38px;bottom:86px}
+.mkt .title{font-size:68px}
+.mkt .top{display:flex;justify-content:space-between;align-items:flex-start;gap:30px}
+.mkt .tl{min-width:0;max-width:1180px}
+.stats{display:flex;gap:26px;flex:none}
+.stat{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:20px;box-shadow:8px 8px 0 var(--ink);padding:14px 22px 16px;width:340px}
+.stat .lb{display:block;font:700 24px var(--f-body)}
+.stat b{display:block;font:800 62px/1.05 var(--f-display);letter-spacing:-.03em}
+.meter{height:16px;border:3px solid var(--ink);border-radius:99px;background:#fff;overflow:hidden;margin-top:8px}
+.meter i{display:block;height:100%;width:0;background:var(--ink)}
+.play .meter i{width:var(--w);transition:width 1.2s 1s cubic-bezier(.2,.8,.2,1)}
+.focus{margin:0;background:var(--ink);color:var(--paper);border-radius:20px;padding:20px 32px;font:500 34px/1.35 var(--f-body);box-shadow:8px 8px 0 var(--paper)}
+.focus b{color:var(--yolk);font-weight:800}
+.bl{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:18px 24px}
+.bl li{background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:18px;padding:14px 22px 14px 74px;position:relative;font:600 28px/1.34 var(--f-body);box-shadow:6px 6px 0 var(--ink)}
+.bl li::before{content:'';position:absolute;left:22px;top:20px;width:34px;height:34px;border-radius:50%;background:var(--bg);border:3px solid var(--ink)}
+.bl li::after{content:'';position:absolute;left:33px;top:28px;width:8px;height:15px;border:solid var(--ink);border-width:0 4px 4px 0;rotate:40deg}
+.ticket{align-self:flex-start;background:var(--yolk);color:var(--ink);border:4px dashed var(--ink);border-radius:18px;padding:10px 36px 12px;font:800 40px/1.15 var(--f-display);rotate:-1deg;margin-top:auto}
+
+/* ---------- 10. Kanal ---------- */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:48px;flex:1;min-height:0;margin-top:4px}
+.col{display:flex;flex-direction:column;gap:22px;min-height:0}
+.col h3{margin:0;align-self:flex-start;background:var(--ink);color:var(--paper);font:800 38px var(--f-display);padding:10px 30px;border-radius:14px;letter-spacing:-.01em}
+.info{flex:1;padding:22px 30px;display:flex;flex-direction:column;justify-content:center;gap:6px;box-shadow:8px 8px 0 var(--ink)}
+.info h4{margin:0;font:800 36px/1.12 var(--f-display);letter-spacing:-.02em}
+.info p{margin:0;font:500 29px/1.36 var(--f-body)}
+
+/* ---------- 11. Pilar ---------- */
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:36px;flex:1;min-height:0;margin:6px 0 10px}
+.pil{padding:36px 34px 34px;display:flex;flex-direction:column;gap:26px}
+.pil h3{margin:0;display:flex;align-items:center;gap:18px;font:800 50px/1.05 var(--f-display);letter-spacing:-.02em}
+.pil h3 i{flex:none;width:76px;height:76px;border-radius:20px;border:4px solid var(--ink);display:grid;place-items:center;font-size:40px;font-style:normal;background:var(--c)}
+.pil ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:18px;flex:1;justify-content:space-between}
+.pil li{position:relative;padding:16px 18px 16px 66px;background:#f6ecd4;border:3px solid var(--ink);border-radius:14px;font:600 33px/1.3 var(--f-body);flex:1;display:flex;align-items:center}
+.pil li::before{content:'';position:absolute;left:22px;top:50%;margin-top:-14px;width:28px;height:28px;border-radius:50%;background:var(--c);border:3px solid var(--ink)}
+
+/* ---------- 12. Keuangan ---------- */
+.fin{display:grid;grid-template-columns:560px 1fr;grid-template-rows:auto auto;gap:28px 40px;flex:1;min-height:0;margin-top:6px}
+.total{grid-row:1/2;background:var(--ink);color:var(--paper);border-radius:26px;padding:34px 38px;display:flex;flex-direction:column;justify-content:center;gap:12px;box-shadow:10px 10px 0 var(--yolk);border:4px solid var(--ink)}
+.total .lb{font:700 28px var(--f-body);letter-spacing:.12em;color:var(--yolk)}
+.total .amt{font:800 98px/1 var(--f-display);letter-spacing:-.04em}
+.total .tag{align-self:flex-start;font:800 32px var(--f-display);color:var(--tomato);background:var(--paper);border:4px solid var(--ink);border-radius:12px;padding:6px 20px;rotate:-2deg}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:24px 28px}
+.mk-card{padding:20px 30px;display:flex;flex-direction:column;justify-content:center;gap:4px;box-shadow:8px 8px 0 var(--ink);border-left-width:14px;border-left-color:var(--c)}
+.mk-card .nm{font:700 30px var(--f-body)}
+.mk-card .rp{font:800 52px/1.05 var(--f-display);letter-spacing:-.03em}
+.alloc{grid-column:1/3;padding:26px 36px 28px;display:grid;grid-template-columns:1fr auto;gap:12px 40px;align-items:center;box-shadow:8px 8px 0 var(--ink)}
+.alloc .al{font:800 36px var(--f-display);letter-spacing:-.02em}
+.alloc .parts{display:flex;gap:14px;flex-wrap:wrap}
+.alloc .parts span{font:700 25px var(--f-body);background:#f6ecd4;border:3px solid var(--ink);border-radius:99px;padding:6px 20px}
+.alloc .net{grid-row:1;grid-column:2;text-align:right}
+.alloc .net .lb{font:700 28px var(--f-body)}
+.alloc .net b{display:block;font:800 64px/1.05 var(--f-display);letter-spacing:-.03em;color:#0e8f63}
+.bar2{grid-column:1/3;height:30px;border:4px solid var(--ink);border-radius:99px;overflow:hidden;display:flex;background:#fff}
+.bar2 i{display:block;height:100%}
+.bar2 .g{width:96%;background:var(--mint)}.bar2 .r{width:4%;background:var(--tomato)}
+
+/* ---------- 13. Tata kelola ---------- */
+.gov{display:grid;grid-template-columns:repeat(3,1fr);gap:40px;flex:1;min-height:0;margin:8px 0 10px}
+.gc{padding:40px 38px 36px;display:flex;flex-direction:column;gap:22px;align-items:flex-start;justify-content:center}
+.gc .ic{width:156px;height:156px;border-radius:50%;border:4px solid var(--ink);display:grid;place-items:center;font-size:80px;background:var(--c);box-shadow:6px 6px 0 var(--ink)}
+.gc h3{margin:8px 0 0;font:800 56px/1.05 var(--f-display);letter-spacing:-.025em}
+.gc p{margin:0;font:500 35px/1.42 var(--f-body)}
+
+/* ---------- 14. Penutup ---------- */
+.s14l{position:absolute;left:100px;top:84px;width:640px;display:flex;flex-direction:column;gap:34px}
+.thanks{padding:44px 44px 38px;display:flex;flex-direction:column;gap:12px}
+.thanks h2{margin:0;font:800 104px/.95 var(--f-display);letter-spacing:-.04em;color:var(--tomato)}
+.thanks .p1{margin:0;font:800 44px/1.12 var(--f-display);letter-spacing:-.02em}
+.thanks .p2{margin:0;font:600 30px/1.4 var(--f-body)}
+.thanks hr{width:100%;border:0;border-top:4px dashed var(--ink);margin:12px 0 6px}
+.thanks .ct{display:flex;flex-direction:column;gap:4px;font:700 30px var(--f-body)}
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.mem{text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center}
+.mem img{width:128px;height:128px;border-radius:50%;object-fit:cover;object-position:center 22%;border:4px solid var(--ink);box-shadow:5px 5px 0 var(--ink);background:#fff}
+.mem span{font:800 21px var(--f-display);letter-spacing:.02em}
+.tv{position:absolute;left:790px;top:100px;width:1040px}
+.tv-body{background:#2a1f19;border:5px solid var(--ink);border-radius:46px;padding:36px 36px 40px;box-shadow:14px 14px 0 var(--ink);position:relative}
+.tv-body::before{content:'';position:absolute;left:50%;top:-62px;width:6px;height:70px;background:var(--ink);rotate:-24deg;transform-origin:bottom}
+.tv-body::after{content:'';position:absolute;left:50%;top:-62px;width:6px;height:70px;background:var(--ink);rotate:24deg;transform-origin:bottom}
+.tv-screen{position:relative;width:960px;height:596px;border-radius:26px;overflow:hidden;background:#0c0a09;border:4px solid #000}
+.tv-screen canvas,.tv-screen video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tv-screen video{opacity:0;background:#000}
+.tv.on .tv-screen video{opacity:1}
+.tv.on .tv-screen canvas{display:none}
+.tv-screen::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.16) 0 2px,transparent 2px 5px);pointer-events:none}
+.tv-cap{position:absolute;left:0;right:0;bottom:22px;text-align:center;font:800 30px var(--f-display);color:#fff;letter-spacing:.1em;text-shadow:0 2px 0 #000}
+.tv.on .tv-cap{display:none}
+.tv-knobs{display:flex;gap:18px;justify-content:flex-end;align-items:center;margin-top:20px;padding-right:10px}
+.tv-knobs i{width:26px;height:26px;border-radius:50%;background:var(--yolk);border:3px solid var(--ink)}
+.tv-knobs i:nth-child(2){background:var(--tomato)}
+.tv-knobs b{margin-right:auto;font:400 34px var(--f-hand);color:#f1d9b8}
+.tv.on .tv-screen{animation:crt .7s cubic-bezier(.2,.9,.2,1)}
+@keyframes crt{0%{scale:1 .01;filter:brightness(4)}45%{scale:1 .01;filter:brightness(4)}100%{scale:1 1;filter:none}}
+#replay{position:absolute;left:790px;top:922px;z-index:7;background:var(--paper);color:var(--ink);border:4px solid var(--ink);border-radius:14px;box-shadow:6px 6px 0 var(--ink);padding:10px 26px;font:800 28px var(--f-display);display:none}
+#replay.show{display:block}
+
+/* ---------- Intro sinematik ---------- */
+#intro{background:#0a0608;color:#fff5ea}
+.glow{position:absolute;width:1500px;height:1500px;border-radius:50%;filter:blur(130px);opacity:.5;mix-blend-mode:screen;pointer-events:none}
+.glow.a{left:-400px;top:-500px;background:radial-gradient(circle,#c2123a,transparent 65%);animation:drift 14s ease-in-out infinite alternate}
+.glow.b{right:-500px;bottom:-600px;background:radial-gradient(circle,#ff9a3c,transparent 65%);animation:drift 11s ease-in-out infinite alternate-reverse}
+.vig{position:absolute;inset:0;z-index:7;pointer-events:none;background:radial-gradient(ellipse at center,transparent 42%,rgba(0,0,0,.78))}
+#grain{position:absolute;inset:0;width:100%;height:100%;z-index:9;opacity:.11;mix-blend-mode:overlay;pointer-events:none}
+.bar{position:absolute;left:0;right:0;height:112px;background:#000;z-index:8;display:flex;align-items:center;justify-content:space-between;padding:0 72px;font:700 25px var(--f-kr);letter-spacing:.2em;color:rgba(255,245,234,.72)}
+.bar.top{top:0}.bar.bot{bottom:0}
+.mid{position:absolute;inset:112px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;text-align:center;opacity:0;z-index:3}
+.mid.show{opacity:1}
+.mid .small{font:700 32px var(--f-body);letter-spacing:.42em;color:rgba(255,245,234,.78)}
+.mid .big{font:800 156px/.92 var(--f-display);letter-spacing:-.04em;text-wrap:balance}
+.mid .big em{font-style:normal;color:var(--crimson)}
+.mid .ep{font:900 40px var(--f-kr);letter-spacing:.3em;color:#ffb3c1}
+.cast{position:absolute;inset:112px 0;display:none;z-index:3}
+.cast.show{display:block}
+.cast .ph{position:absolute;top:70px;width:560px;height:700px;border:14px solid #f6efe6;background:#222;box-shadow:0 40px 90px rgba(0,0,0,.7);overflow:hidden}
+.cast .ph img{display:block;width:100%;height:100%;object-fit:cover;filter:contrast(1.05) saturate(1.1)}
+.cast.L .ph{left:250px;rotate:-3deg}
+.cast.R .ph{right:250px;rotate:3deg}
+.cast .tx{position:absolute;top:215px;width:900px}
+.cast.L .tx{left:930px}
+.cast.R .tx{left:150px}
+.cast .no{font:900 34px var(--f-kr);letter-spacing:.3em;color:#ffb3c1;margin-bottom:12px}
+.cast .nm{font:800 var(--fs,200px)/.95 var(--f-display);letter-spacing:-.03em;white-space:nowrap;text-shadow:0 7px 0 rgba(194,18,58,.6)}
+.cast .nm span{display:inline-block}
+.cast .ul{display:block;height:10px;width:0;background:var(--crimson);margin:18px 0 22px;border-radius:5px}
+.cast .tg{margin:0;font:600 italic 38px/1.35 var(--f-body);color:rgba(255,245,234,.84);opacity:0}
+#in-group{position:absolute;inset:112px 0;display:none;z-index:3}
+#in-group.show{display:block}
+#in-group h2{margin:0;position:absolute;left:0;right:0;top:36px;text-align:center;font:800 130px/1 var(--f-display);letter-spacing:-.03em}
+#in-group h2 em{font-style:normal;color:var(--crimson)}
+.gp{position:absolute;top:230px;width:350px;background:#f6efe6;padding:12px 12px 56px;box-shadow:0 30px 70px rgba(0,0,0,.7);color:var(--ink);opacity:0}
+.gp img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover}
+.gp span{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:800 28px var(--f-display);letter-spacing:.04em}
+.gline{position:absolute;left:0;right:0;bottom:30px;text-align:center;font:700 italic 36px var(--f-body);color:rgba(255,245,234,.8);opacity:0}
+
+/* ---------- Teaser ---------- */
+.teaser{background:var(--tbg);color:var(--tfg)}
+.teaser .box{position:absolute;left:120px;right:120px;top:50%;translate:0 -50%;display:flex;flex-direction:column;gap:6px}
+.teaser .ln{display:block;font:800 var(--fs,132px)/1.04 var(--f-display);letter-spacing:-.035em;text-wrap:balance}
+.teaser .w{display:inline-block;opacity:0}
+.teaser.play .w{animation:wpop .55s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--i)*130ms + 380ms)}
+.teaser .sub{margin:30px 0 0;align-self:flex-start;font:400 70px/1.1 var(--f-hand);background:var(--paper);color:var(--ink);padding:6px 30px 10px;border:5px solid var(--ink);border-radius:16px;box-shadow:8px 8px 0 var(--ink);rotate:-2deg;opacity:0}
+.teaser.play .sub{animation:pop2 .6s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--sd,6)*130ms + 700ms)}
+.c-yolk{color:var(--yolk)}.c-tomato{color:var(--tomato)}.c-ink{color:var(--ink)}.c-paper{color:var(--paper)}.c-mint{color:var(--mint)}.c-crimson{color:var(--crimson)}
+.mq{position:absolute;left:-5%;width:110%;height:84px;background:var(--mqb,var(--ink));color:var(--mqc,var(--paper));overflow:hidden;display:flex;align-items:center}
+.mq.top{top:64px;rotate:-2deg}.mq.bot{bottom:64px;rotate:2deg}
+.mq .trk{display:flex;white-space:nowrap;font:800 40px var(--f-display);letter-spacing:.08em;animation:mq 14s linear infinite}
+.pills{display:flex;gap:22px;margin-top:34px;flex-wrap:wrap}
+.pill{font:800 56px var(--f-display);padding:8px 34px 12px;border:5px solid var(--ink);border-radius:99px;box-shadow:7px 7px 0 var(--ink);background:var(--c);color:var(--ink);opacity:0;rotate:var(--r,-2deg)}
+.teaser.play .pill{animation:pop2 .6s cubic-bezier(.34,1.56,.64,1) both;animation-delay:calc(var(--k)*260ms + 2100ms)}
+
+/* ---------- Slide nyasar ---------- */
+#wrong{background:#fff;color:#222;font-family:Arial,Helvetica,sans-serif}
+#wrong .doc{position:absolute;left:110px;top:90px;right:110px}
+#wrong h2{margin:0;font:700 88px/1.1 Arial,Helvetica,sans-serif;color:#1f3b73;border-bottom:8px solid #2f6fe4;padding-bottom:20px}
+#wrong ol{margin:44px 0 0;padding-left:60px;font:400 56px/1.55 Arial,Helvetica,sans-serif}
+#wrong li{opacity:0;translate:-40px 0;transition:all .45s ease}
+#wrong li.on{opacity:1;translate:0 0}
+#wrong .num{position:absolute;right:60px;bottom:34px;font:400 30px Arial,Helvetica,sans-serif;color:#888}
+#wrong .oops{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,79,46,.14)}
+#wrong.oops-on .oops{display:flex}
+#wrong .st{rotate:-6deg;background:var(--tomato);color:var(--paper);border:8px solid var(--ink);border-radius:24px;box-shadow:16px 16px 0 var(--ink);padding:26px 60px 34px;text-align:center;animation:slam .55s cubic-bezier(.2,1.6,.4,1) both}
+#wrong .st b{display:block;font:800 150px/1 var(--f-display);letter-spacing:-.03em}
+#wrong .st span{display:block;margin-top:10px;font:400 62px var(--f-hand)}
+@keyframes slam{from{scale:3;opacity:0}to{scale:1;opacity:1}}
+#wrong.glitch{animation:gl .45s steps(2) both}
+@keyframes gl{0%{filter:invert(1) hue-rotate(90deg);translate:-20px 0}25%{filter:none;translate:24px 4px}50%{filter:invert(1);translate:-12px -6px}100%{filter:none;translate:0 0}}
+
+/* ---------- Efek lag & kejutan ---------- */
+#lag{position:absolute;inset:0;z-index:40;display:none;align-items:center;justify-content:center;flex-direction:column;gap:26px;background:rgba(10,8,6,.38)}
+#lag.on{display:flex}
+#lag .ring{width:130px;height:130px;border-radius:50%;border:14px solid rgba(255,255,255,.28);border-top-color:#fff;animation:spin .9s linear infinite}
+#lag p{margin:0;font:700 38px var(--f-body);color:#fff;background:rgba(0,0,0,.55);padding:8px 26px;border-radius:12px;letter-spacing:.04em}
+#lag small{font:600 26px var(--f-body);color:rgba(255,255,255,.8)}
+#twist{position:absolute;inset:0;z-index:45;display:none;overflow:hidden;align-items:center;justify-content:center;flex-direction:column;gap:6px;background:var(--tomato)}
+#twist.on{display:flex}
+#twist .rays{position:absolute;left:50%;top:50%;width:2800px;height:2800px;margin:-1400px 0 0 -1400px;background:repeating-conic-gradient(var(--yolk) 0 9deg,var(--tomato) 9deg 18deg);animation:spin 5s linear infinite}
+#twist .t1,#twist .t2,#twist .t3{position:relative;text-align:center;opacity:0}
+#twist .t1{margin-bottom:34px;font:800 96px var(--f-display);color:var(--paper);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:8px 8px 0 var(--ink);letter-spacing:-.02em}
+#twist .t2{font:800 250px/.95 var(--f-display);color:var(--yolk);-webkit-text-stroke:6px var(--ink);paint-order:stroke fill;text-shadow:14px 14px 0 var(--ink);letter-spacing:-.04em;rotate:-4deg}
+#twist .t3{margin-top:30px;font:400 70px var(--f-hand);background:var(--paper);color:var(--ink);border:5px solid var(--ink);border-radius:16px;padding:6px 34px 10px;box-shadow:8px 8px 0 var(--ink);rotate:2deg}
+#twist.on .t1{animation:slam .5s .05s cubic-bezier(.2,1.6,.4,1) both}
+#twist.on .t2{animation:slam .55s .3s cubic-bezier(.2,1.6,.4,1) both}
+#twist.on .t3{animation:pop2 .5s .9s cubic-bezier(.34,1.56,.64,1) both}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
+#fx{position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none;z-index:50}
+.react{position:absolute;bottom:20px;font-size:64px;z-index:30;pointer-events:none;animation:rise 3.2s ease-out both}
+#prog{position:absolute;left:0;right:0;bottom:0;height:10px;z-index:20;background:rgba(22,17,14,.18);display:none}
+#prog.show{display:block}
+#prog i{display:block;height:100%;width:0;background:var(--ink);transition:width .8s cubic-bezier(.2,.8,.2,1)}
+#prog b{position:absolute;bottom:2px;left:0;font-size:34px;translate:-50% 0;transition:left .8s cubic-bezier(.2,.8,.2,1);line-height:1}
+
+/* ---------- Kontrol kecil ---------- */
+#hud{position:fixed;z-index:150;right:max(14px,env(safe-area-inset-right,0px));bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;gap:10px;transition:opacity .4s}
+#hud.idle{opacity:0}
+#hud button{min-width:46px;height:46px;padding:0 16px;background:rgba(22,17,14,.82);color:var(--paper);border:2px solid rgba(255,250,240,.7);border-radius:12px;font:700 16px var(--f-body)}
+#hud button:hover{background:var(--tomato)}
+
+@media (prefers-reduced-motion:reduce){
+  .play .rv{animation-duration:.01s;animation-delay:0s}
+  .glow,.cover .burst,.pola,.mq .trk{animation:none}
+}
+</style>
+</head>
+<body>
+<div id="gate">
+  <div class="gate-card">
+    <p class="g-kick">Presentasi kelompok</p>
+    <h1>BMC Rumah Yatim <span>x</span> Marketplace</h1>
+    <p class="g-sub">Versi seru dengan foto tim, musik, sound effect, dan beberapa kejutan. Nyalakan volumenya, lalu tekan mulai.</p>
+    <button id="start" class="g-btn" type="button">Mulai presentasi</button>
+    <p class="g-note" id="gload" hidden>Menyiapkan suara…</p>
+    <ul class="g-tips">
+      <li>Maju: klik, spasi, atau panah kanan</li>
+      <li>Mundur: panah kiri</li>
+      <li>Layar penuh: F</li>
+      <li>Bisukan: M</li>
+    </ul>
+    <p class="g-note">Di HP, putar ke mode landscape agar pas. Laptop atau proyektor paling nyaman.</p>
+  </div>
+</div>
+
+<div id="viewport" hidden>
+<div id="stage"><div id="world">
+
+<!-- ============ INTRO ============ -->
+<section class="scene" id="intro">
+  <div class="glow a"></div><div class="glow b"></div>
+  <div class="bar top"><span>출연진 · CAST</span><span>1화 · EPISODE 1</span></div>
+  <div class="bar bot"><span>BMC RUMAH YATIM × MARKETPLACE</span><span>TIM KAMI</span></div>
+  <div class="vig"></div>
+  <canvas id="grain" width="480" height="270"></canvas>
+
+  <div class="mid" id="in-pres"><div class="small">KELOMPOK KAMI MEMPERSEMBAHKAN</div></div>
+  <div class="mid" id="in-title">
+    <div class="ep">1화</div>
+    <div class="big">BMC Rumah Yatim <em>×</em> Marketplace</div>
+    <div class="small">SEBUAH PRESENTASI</div>
+  </div>
+
+  <div class="cast L" id="c1" data-name="JAFAR" style="--fs:250px">
+    <div class="ph"><img src="img/jafar.jpg" alt="Jafar, memakai baju biru"></div>
+    <div class="tx"><div class="no">출연진 1/4</div><div class="nm"></div><i class="ul"></i><p class="tg">“Tatapan tajam, niat tulus.”</p></div>
+  </div>
+  <div class="cast R" id="c2" data-name="PAK JEJEN" style="--fs:156px">
+    <div class="ph"><img src="img/jejen.jpg" alt="Pak Jejen, memakai baju koko"></div>
+    <div class="tx"><div class="no">출연진 2/4</div><div class="nm"></div><i class="ul"></i><p class="tg">“Senyum paling menenangkan di ruangan.”</p></div>
+  </div>
+  <div class="cast L" id="c3" data-name="PAK BAGUD" style="--fs:156px">
+    <div class="ph"><img src="img/bagud.jpg" alt="Pak Bagud, memakai baju hitam"></div>
+    <div class="tx"><div class="no">출연진 3/4</div><div class="nm"></div><i class="ul"></i><p class="tg">“Pegang HP, siap jawab semua pertanyaan.”</p></div>
+  </div>
+  <div class="cast R" id="c4" data-name="NIDA" style="--fs:270px">
+    <div class="ph"><img src="img/nida.jpg" alt="Nida, melambaikan tangan"></div>
+    <div class="tx"><div class="no">출연진 4/4</div><div class="nm"></div><i class="ul"></i><p class="tg">“Melambai dulu, presentasi kemudian.”</p></div>
+  </div>
+
+  <div id="in-group">
+    <h2>TIM <em>KAMI</em></h2>
+    <div class="gp" data-r="-4" style="left:170px"><img src="img/jafar.jpg" alt=""><span>JAFAR</span></div>
+    <div class="gp" data-r="2" style="left:580px;top:262px"><img src="img/jejen.jpg" alt=""><span>PAK JEJEN</span></div>
+    <div class="gp" data-r="-2" style="left:990px;top:262px"><img src="img/bagud.jpg" alt=""><span>PAK BAGUD</span></div>
+    <div class="gp" data-r="4" style="left:1400px"><img src="img/nida.jpg" alt=""><span>NIDA</span></div>
+    <div class="gline">Selamat menonton.</div>
+  </div>
+</section>
+
+<!-- ============ SELIPAN ============ -->
+<section class="scene teaser" id="t1" style="--tbg:var(--ink);--tfg:var(--paper);--mqb:var(--yolk);--mqc:var(--ink)">
+  <div class="mq top" data-t="PLOT TWIST  •  SIAP-SIAP  •  JANGAN KEDIP  •  "></div>
+  <div class="box">
+    <span class="ln" data-split style="--fs:190px">SATU KELOMPOK.</span>
+    <span class="ln c-yolk" data-split style="--fs:190px">SATU MISI.</span>
+    <span class="ln c-tomato" data-split style="--fs:190px">Rp 5.000.000.000.</span>
+    <p class="sub">iya, sembilan nol 😳</p>
+  </div>
+  <div class="mq bot" data-t="KEPO?  •  LANJUT YUK  •  KEPO?  •  LANJUT YUK  •  "></div>
+</section>
+
+<section class="scene teaser" id="t2" style="--tbg:var(--tomato);--tfg:var(--paper)">
+  <div class="mq top" data-t="TUNGGU DULU  •  ADA YANG MAU DITANYAKAN  •  "></div>
+  <div class="box">
+    <span class="ln" data-split style="--fs:140px">Pernah mau berbuat baik,</span>
+    <span class="ln c-ink" data-split style="--fs:140px">tapi malas ganti aplikasi?</span>
+    <p class="sub">kami juga 🙋</p>
+  </div>
+  <div class="mq bot" data-t="RELATABLE  •  RELATABLE  •  RELATABLE  •  "></div>
+</section>
+
+<section class="scene teaser" id="t3" style="--tbg:var(--sky);--tfg:var(--ink)">
+  <div class="mq top" data-t="DETEKTIF MODE  •  ON  •  DETEKTIF MODE  •  ON  •  "></div>
+  <div class="box">
+    <span class="ln" data-split style="--fs:220px">Siapa sih yang</span>
+    <span class="ln c-paper" data-split style="--fs:220px">bakal donasi?</span>
+    <p class="sub">petunjuk: dia lagi scroll TikTok sekarang 👀</p>
+  </div>
+  <div class="mq bot" data-t="PETUNJUK ADA DI SLIDE BERIKUTNYA  •  "></div>
+</section>
+
+<section class="scene teaser" id="t4" style="--tbg:var(--gum);--tfg:var(--ink)">
+  <div class="mq top" data-t="OKE SERIUS  •  OKE SERIUS  •  OKE SERIUS  •  "></div>
+  <div class="box">
+    <span class="ln" data-split>Oke, yang benar:</span>
+    <span class="ln c-paper" data-split style="--fs:120px">kebaikan itu punya banyak rasa.</span>
+    <p class="sub">pilih yang mana? 🍧</p>
+  </div>
+  <div class="mq bot" data-t="MENU KEBAIKAN  •  MENU KEBAIKAN  •  "></div>
+</section>
+
+<section class="scene teaser" id="t5" style="--tbg:var(--grape);--tfg:var(--paper)">
+  <div class="mq top" data-t="PERTARUNGAN  •  EMPAT  •  KEPRIBADIAN  •  "></div>
+  <div class="box">
+    <span class="ln" data-split style="--fs:180px">4 marketplace.</span>
+    <span class="ln c-yolk" data-split style="--fs:180px">4 kepribadian.</span>
+    <span class="ln" data-split style="--fs:180px">1 tujuan.</span>
+    <div class="pills">
+      <span class="pill" style="--c:var(--mint);--k:0;--r:-3deg">TOKOPEDIA</span>
+      <span class="pill" style="--c:#ff7a45;--k:1;--r:2deg">SHOPEE</span>
+      <span class="pill" style="--c:var(--sky);--k:2;--r:-2deg">BLIBLI</span>
+      <span class="pill" style="--c:var(--gum);--k:3;--r:3deg">LAZADA</span>
+    </div>
+  </div>
+  <div class="mq bot" data-t="SIAPA JAGOANMU?  •  SIAPA JAGOANMU?  •  "></div>
+</section>
+
+<section class="scene teaser" id="t6" style="--tbg:var(--mint);--tfg:var(--ink)">
+  <div class="mq top" data-t="PETA HARTA KARUN  •  PETA HARTA KARUN  •  "></div>
+  <div class="box">
+    <span class="ln" data-split>Oke, strateginya udah.</span>
+    <span class="ln c-paper" data-split>Terus donaturnya ketemu di mana?</span>
+    <p class="sub">spoiler: di HP kamu juga 📱</p>
+  </div>
+  <div class="mq bot" data-t="ADA JALURNYA  •  ADA JALURNYA  •  "></div>
+</section>
+
+<section class="scene teaser" id="t7" style="--tbg:var(--ink);--tfg:var(--paper);--mqb:var(--tomato);--mqc:var(--paper)">
+  <div class="mq top" data-t="DRUM ROLL  •  DRUM ROLL  •  DRUM ROLL  •  "></div>
+  <div class="box">
+    <span class="ln" data-split>Dan sekarang...</span>
+    <span class="ln c-yolk" data-split style="--fs:118px">bagian yang kalian tunggu-tunggu.</span>
+    <p class="sub">drum roll, please 🥁</p>
+  </div>
+  <div class="mq bot" data-t="ANGKANYA SEBENTAR LAGI  •  "></div>
+</section>
+
+<section class="scene teaser" id="t8" style="--tbg:var(--paper);--tfg:var(--ink);--mqb:var(--ink);--mqc:var(--paper)">
+  <div class="mq top" data-t="SERIUS DULU SEBENTAR  •  SERIUS DULU SEBENTAR  •  "></div>
+  <div class="box">
+    <span class="ln" data-split>Satu hal yang tidak boleh ditawar.</span>
+    <span class="ln c-crimson" data-split style="--fs:230px">AMANAH.</span>
+    <p class="sub" style="background:var(--yolk)">serius dulu sebentar 🤝</p>
+  </div>
+  <div class="mq bot" data-t="PERCAYA ITU MAHAL  •  PERCAYA ITU MAHAL  •  "></div>
+</section>
+
+<section class="scene teaser" id="t9" style="--tbg:var(--yolk);--tfg:var(--ink);--mqb:var(--ink);--mqc:var(--yolk)">
+  <div class="mq top" data-t="BENERAN  •  BENERAN  •  BENERAN  •  "></div>
+  <div class="box">
+    <span class="ln" data-split style="--fs:150px">Ini slide terakhir kok.</span>
+    <span class="ln c-tomato" data-split style="--fs:260px">Beneran.</span>
+    <p class="sub">(kali ini kami nggak bohong 🤞)</p>
+  </div>
+  <div class="mq bot" data-t="PERCAYA SAJA  •  PERCAYA SAJA  •  "></div>
+</section>
+
+<!-- ============ SLIDE NYASAR ============ -->
+<section class="scene" id="wrong">
+  <div class="doc">
+    <h2>Cara Memasak Mie Instan Anti Gagal 🍜</h2>
+    <ol>
+      <li>Didihkan 400 ml air</li>
+      <li>Masukkan mie, tunggu 3 menit</li>
+      <li>Tiriskan, tuang bumbu, aduk rata</li>
+      <li>Selamat makan!</li>
+    </ol>
+  </div>
+  <div class="num">Slide 4</div>
+  <div class="oops"><div class="st"><b>EH, SALAH SLIDE!</b><span>itu file dari folder sebelah 🙈</span></div></div>
+</section>
+
+<!-- ============ 1. SAMPUL ============ -->
+<section class="scene slide cover" id="s1" style="--bg:var(--yolk)">
+  <div class="dots"></div>
+  <div class="burst"></div>
+  <div class="polas">
+    <div class="pola" style="left:24px;top:70px;rotate:-8deg"><i class="tape"></i><img src="img/jafar.jpg" alt=""><span>Jafar</span></div>
+    <div class="pola" style="left:30px;top:640px;rotate:6deg;animation-delay:-2s"><i class="tape"></i><img src="img/jejen.jpg" alt=""><span>Pak Jejen</span></div>
+    <div class="pola" style="left:1660px;top:64px;rotate:7deg;animation-delay:-1s"><i class="tape"></i><img src="img/bagud.jpg" alt=""><span>Pak Bagud</span></div>
+    <div class="pola" style="left:1654px;top:650px;rotate:-6deg;animation-delay:-3s"><i class="tape"></i><img src="img/nida.jpg" alt=""><span>Nida</span></div>
+  </div>
+  <div class="center"><div class="poster rv">
+    <div class="stamp">Strategic Model Canvas</div>
+    <p class="kicker">~ Program Integrasi Digital Fundraising ~</p>
+    <h1>BMC Rumah Yatim x Marketplace</h1>
+    <hr>
+    <p class="lead">Transformasi Kemudahan Berdonasi Melalui Ekosistem E-Commerce Terkemuka Indonesia</p>
+    <div class="chips"><span class="chip a">Rumah Yatim</span><span class="chip b">Tokopedia • Shopee • Blibli • Lazada</span></div>
+  </div></div>
+  <div class="stk rv" style="left:300px;top:930px;--r:4deg;font-size:46px">wajib ditonton sampai habis</div>
+</section>
+
+<!-- ============ 2. LATAR BELAKANG ============ -->
+<section class="scene slide" id="s2" data-react="1" style="--bg:var(--sky)">
+  <div class="dots"></div>
+  <div class="page">
+    <div>
+      <h2 class="title rv" style="max-width:1300px">Latar Belakang &amp; Peluang Integrasi</h2>
+      <span class="subm rv">(Mengapa Strategi Ini Penting?)</span>
+    </div>
+    <div class="grid">
+      <div class="stack">
+        <div class="card reason rv"><div class="ic" style="--c:var(--yolk)">📱</div><div><h3>Pergeseran Perilaku Donatur</h3><p>Pengguna aktif marketplace menginginkan kepraktisan berdonasi tanpa harus berpindah aplikasi saat berbelanja digital.</p></div></div>
+        <div class="card reason rv"><div class="ic" style="--c:var(--mint)">🤝</div><div><h3>Potensi Penyaluran CSR Perusahaan</h3><p>Membuka kolaborasi Matching Fund dengan platform e-commerce dan seller yang memiliki komitmen kepedulian sosial tinggi.</p></div></div>
+        <div class="card reason rv"><div class="ic" style="--c:var(--gum)">⚡</div><div><h3>Efisiensi Biaya Operasional</h3><p>Memanfaatkan traffic organik marketplace untuk menekan biaya akuisisi donatur baru secara signifikan.</p></div></div>
+      </div>
+      <div class="target rv">
+        <h3>Target Transaksi <span class="big">Rp 5 Miliar</span></h3>
+        <svg viewBox="0 0 400 220" role="img" aria-label="Grafik naik">
+          <rect x="20" y="150" width="56" height="60" rx="6" fill="#ffc93c"/>
+          <rect x="100" y="115" width="56" height="95" rx="6" fill="#ffc93c"/>
+          <rect x="180" y="82" width="56" height="128" rx="6" fill="#ffc93c"/>
+          <rect x="260" y="40" width="56" height="170" rx="6" fill="#ffc93c"/>
+          <path d="M20 128 L112 96 L196 64 L318 14" fill="none" stroke="#ff4f2e" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M290 6 L338 8 L328 52" fill="none" stroke="#ff4f2e" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="stk rv" style="right:130px;top:88px;--r:5deg;font-size:48px">intinya: donasi semudah checkout</div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>2 / 14</span></footer>
+</section>
+
+<!-- ============ 3. SEGMENTASI ============ -->
+<section class="scene slide" id="s3" data-react="1" style="--bg:var(--gum)">
+  <div class="dots"></div>
+  <div class="page" style="gap:20px">
+    <div>
+      <h2 class="title rv">Segmentasi Donatur</h2>
+      <span class="subm rv">Customer Segments (Segmentasi Pasar)</span>
+    </div>
+    <p class="intro rv">Untuk mempermudah promosi agar tepat sasaran, target pasar yang dituju adalah:</p>
+    <div class="seg">
+      <div class="card rv"><span class="n">1</span><h3>Generasi Z (18–27 tahun):</h3><p>Aktif menggunakan TikTok, Instagram, dan marketplace.</p></div>
+      <div class="card rv"><span class="n">2</span><h3>Generasi Milenial (28–45 tahun):</h3><p>Sering berbelanja online dan tertarik dengan promo.</p></div>
+      <div class="card rv"><span class="n">3</span><h3>Pengguna Marketplace:</h3><p>Masyarakat yang terbiasa berbelanja melalui Shopee, Tokopedia, dan platform lainnya.</p></div>
+      <div class="card rv"><span class="n">4</span><h3>Pemburu Promo:</h3><p>Konsumen yang tertarik dengan diskon, cashback, voucher, dan gratis ongkir.</p></div>
+      <div class="card rv"><span class="n">5</span><h3>Pengguna Media Sosial:</h3><p>Masyarakat yang sering menemukan produk melalui promosi digital.</p></div>
+    </div>
+    <div class="ribbon rv"><b>Target utama:</b> Generasi Z dan Milenial karena aktif menggunakan media sosial dan berbelanja secara online.</div>
+  </div>
+  <div class="stk rv" style="right:110px;top:74px;--r:5deg;font-size:48px">Gen Z: “ini mah gue banget”</div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>3 / 14</span></footer>
+</section>
+
+<!-- ============ 10. KANAL ============ -->
+<section class="scene slide" id="s10" style="--bg:var(--yolk)">
+  <div class="dots"></div>
+  <div class="page">
+    <div>
+      <h2 class="title t-md rv">Kanal Ekosistem &amp; Hubungan Donatur</h2>
+      <span class="subm rv">(Channels &amp; Customer Relationships)</span>
+    </div>
+    <div class="two">
+      <div class="col">
+        <h3 class="rv">Kanal Distribusi (Channels)</h3>
+        <div class="card info rv"><h4>1. In-App Placement</h4><p>Banner khusus, Halaman Campaign Ramadan Berbagi, dan Fitur Checkout Donasi.</p></div>
+        <div class="card info rv"><h4>2. Interactive &amp; Digital Ads</h4><p>Live donasi, kampanye affiliate, iklan internal marketplace, dan push notification.</p></div>
+        <div class="card info rv"><h4>3. Official Media Channel</h4><p>Media sosial resmi marketplace dan platform komunikasi Rumah Yatim.</p></div>
+      </div>
+      <div class="col">
+        <h3 class="rv">Hubungan Donatur</h3>
+        <div class="card info rv"><h4>Membangun Kepercayaan Solutif</h4><p>Hubungan berkelanjutan melalui pelayanan responsif dan akuntabel.</p></div>
+        <div class="card info rv"><h4>Komunikasi Personal &amp; Transparansi</h4><p>Pembaruan berkala laporan penyaluran program donasi secara rinci.</p></div>
+        <div class="card info rv"><h4>Apresiasi Kontribusi</h4><p>Program pengakuan dan penghargaan bagi publik donatur serta seller mitra.</p></div>
+      </div>
+    </div>
+  </div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>10 / 14</span></footer>
+</section>
+
+<!-- ============ 11. PILAR ============ -->
+<section class="scene slide" id="s11" style="--bg:var(--gum)">
+  <div class="dots"></div>
+  <div class="page">
+    <div>
+      <h2 class="title t-md rv">Pilar Operasional &amp; Kemitraan</h2>
+      <span class="subm rv">(Key Partnerships, Activities &amp; Resources)</span>
+    </div>
+    <div class="three">
+      <div class="card pil rv" style="--c:var(--yolk)">
+        <h3><i>🏪</i>Mitra Utama</h3>
+        <ul><li>Shopee, Tokopedia, Blibli, Lazada</li><li>Mitra Perusahaan &amp; Seller</li><li>Payment Gateway Integrator</li><li>Influencer &amp; Donatur Publik</li></ul>
+      </div>
+      <div class="card pil rv" style="--c:var(--mint)">
+        <h3><i>🎯</i>Aktivitas Kunci</h3>
+        <ul><li>Pengembangan kerja sama marketplace</li><li>Optimasi halaman &amp; kategori donasi</li><li>Memastikan kepastian penyaluran</li><li>Riset internal &amp; evaluasi performa</li></ul>
+      </div>
+      <div class="card pil rv" style="--c:var(--sky)">
+        <h3><i>🧰</i>Sumber Daya</h3>
+        <ul><li>Akun Toko Resmi Rumah Yatim</li><li>Tim Fundraising &amp; Keuangan</li><li>Legalitas Lembaga Terverifikasi</li><li>Mitra Distribusi &amp; Relawan Lapangan</li></ul>
+      </div>
+    </div>
+  </div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>11 / 14</span></footer>
+</section>
+
+<!-- ============ 12. KEUANGAN ============ -->
+<section class="scene slide" id="s12" data-react="1" style="--bg:var(--mint)">
+  <div class="dots"></div>
+  <div class="page">
+    <div>
+      <h2 class="title t-md rv">Struktur Keuangan &amp; Proyeksi Revenue</h2>
+      <span class="subm rv">(Cost Structure &amp; Corporate Matching Fund)</span>
+    </div>
+    <div class="fin">
+      <div class="total rv">
+        <span class="lb">TOTAL TRANSAKSI TARGET</span>
+        <b class="amt" id="amt" data-final="Rp 5,00 Miliar">Rp 5,00 Miliar</b>
+        <span class="tag">Corporate Matching Fund</span>
+      </div>
+      <div class="split">
+        <div class="card mk-card rv" style="--c:#1fae5b"><span class="nm">Tokopedia (50%)</span><b class="rp">Rp 2.500.000.000</b></div>
+        <div class="card mk-card rv" style="--c:#ff6a3d"><span class="nm">Shopee (30%)</span><b class="rp">Rp 1.500.000.000</b></div>
+        <div class="card mk-card rv" style="--c:#2f93f0"><span class="nm">Blibli (15%)</span><b class="rp">Rp 750.000.000</b></div>
+        <div class="card mk-card rv" style="--c:#7b4dff"><span class="nm">Lazada (5%)</span><b class="rp">Rp 250.000.000</b></div>
+      </div>
+      <div class="card alloc rv">
+        <div>
+          <div class="al">Alokasi Fee Marketplace (4% = Rp 200 Juta)</div>
+          <div class="parts"><span>• Campaign Ramadan (1,8% / 90jt)</span><span>• Iklan &amp; Optimasi (1,3% / 65jt)</span><span>• Operasional (0,9% / 45jt)</span></div>
+        </div>
+        <div class="net"><span class="lb">Penyaluran Dana Bersih (96%)</span><b>Rp 4.800.000.000</b></div>
+        <div class="bar2"><i class="g"></i><i class="r"></i></div>
+      </div>
+    </div>
+  </div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>12 / 14</span></footer>
+</section>
+
+<!-- ============ 13. TATA KELOLA ============ -->
+<section class="scene slide" id="s13" data-react="1" style="--bg:var(--grape);--tt:var(--paper)">
+  <div class="dots"></div>
+  <div class="page">
+    <div>
+      <h2 class="title t-md rv">Tata Kelola &amp; Penjaminan Syariah</h2>
+      <span class="subm rv">(Risk Mitigation &amp; Compliance)</span>
+    </div>
+    <div class="gov">
+      <div class="card gc rv" style="--c:var(--yolk)"><div class="ic">⚖️</div><h3>Pengawas Syariah</h3><p>Menjamin seluruh skema pengelolaan, penghimpunan, dan penyaluran dana sesuai kaidah dan prinsip syariat Islam.</p></div>
+      <div class="card gc rv" style="--c:var(--mint)"><div class="ic">📋</div><h3>Auditor Keuangan</h3><p>Pemeriksaan laporan keuangan secara berkala oleh auditor independen untuk menjaga tingkat kredibilitas lembaga.</p></div>
+      <div class="card gc rv" style="--c:var(--gum)"><div class="ic">📊</div><h3>Publikasi Transparan</h3><p>Pelaporan penyaluran bantuan secara real-time dan transparan kepada seluruh donatur serta mitra e-commerce.</p></div>
+    </div>
+  </div>
+  <footer class="ft" style="color:var(--paper)"><span>Rumah Yatim × Marketplace</span><span>13 / 14</span></footer>
+</section>
+
+<!-- ============ 14. PENUTUP ============ -->
+<section class="scene slide" id="s14" style="--bg:var(--yolk)">
+  <div class="dots"></div>
+  <div class="s14l">
+    <div class="card thanks rv">
+      <h2>Terima Kasih!</h2>
+      <p class="p1">Mari Berkolaborasi Menyebar Kebaikan</p>
+      <p class="p2">Bersama Rumah Yatim dan Ekosistem Marketplace Indonesia</p>
+      <hr>
+      <div class="ct"><span>www.rumah-yatim.org</span><span>mitra@rumah-yatim.org</span></div>
+    </div>
+    <div class="team rv">
+      <div class="mem"><img src="img/jafar.jpg" alt="Jafar"><span>JAFAR</span></div>
+      <div class="mem"><img src="img/jejen.jpg" alt="Pak Jejen"><span>PAK JEJEN</span></div>
+      <div class="mem"><img src="img/bagud.jpg" alt="Pak Bagud"><span>PAK BAGUD</span></div>
+      <div class="mem"><img src="img/nida.jpg" alt="Nida"><span>NIDA</span></div>
+    </div>
+  </div>
+  <div class="tv rv" id="tv">
+    <div class="tv-body">
+      <div class="tv-screen">
+        <canvas id="static" width="160" height="100"></canvas>
+        <video id="vid" src="video/closing.mp4" poster="img/closing-poster.jpg" playsinline preload="auto"></video>
+        <div class="tv-cap">MENCARI SINYAL…</div>
+      </div>
+      <div class="tv-knobs"><b>penutup resmi</b><i></i><i></i></div>
+    </div>
+  </div>
+  <button id="replay" type="button">↻ Putar ulang video</button>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>14 / 14</span></footer>
+</section>
+
+
+<section class="scene slide" id="s4" data-react="1" style="--bg:var(--yolk)">
+  <div class="dots"></div>
+  <div class="page">
+    <h2 class="title t-md rv">Program &amp; Layanan yang akan di kolaborasikan</h2>
+    <div class="prog"><div class="card pcard rv"><h3>Program Pendidikan – Education for All</h3><ul><li>Beasiswa anak yatim dan dhuafa.</li><li>School Kits (tas, buku, alat tulis).</li><li>Bantuan fasilitas pendidikan.</li></ul><div class="shot" style="--pr:-2deg"><i class="tape"></i><img src="img/poster-pendidikan.webp" alt="Poster Yatim Bisa Sekolah"></div></div><div class="card pcard rv"><h3>Program Ramadan – Ramadan Berbagi</h3><ul><li>Paket sembako Ramadan.</li><li>Iftar dan sahur.</li><li>Santunan anak yatim.</li><li>Zakat, infak, dan sedekah Ramadan.</li><li>Bingkisan Lebaran.</li></ul><div class="shot" style="--pr:2deg"><i class="tape"></i><img src="img/poster-ramadan.webp" alt="Poster Sedekah Yatim Ramadhan"></div></div></div>
+  </div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>4 / 14</span></footer>
+</section>
+
+<section class="scene slide" id="s5" data-react="1" style="--bg:var(--sky)">
+  <div class="dots"></div>
+  <div class="page">
+    <h2 class="title t-md rv">Program &amp; Layanan yang akan di kolaborasikan</h2>
+    <div class="prog"><div class="card pcard rv"><h3>4. Program Digital ZISWAF</h3><ul><li>Layanan zakat, infak, sedekah, dan wakaf.</li><li>Kalkulator zakat.</li><li>Fitur donasi dan doa anak yatim.</li></ul><div class="shot" style="--pr:-2deg"><i class="tape"></i><img src="img/poster-ziswaf.webp" alt="Poster Program Digital ZISWAF"></div></div><div class="card pcard rv"><h3>Program Qurban – Tebar Qurban</h3><ul><li>Pembelian hewan qurban.</li><li>Patungan qurban.</li><li>Distribusi daging qurban ke pelosok.</li><li>Qurban untuk yatim dan dhuafa.</li></ul><div class="shot" style="--pr:2deg"><i class="tape"></i><img src="img/poster-qurban.webp" alt="Poster Program Qurban Tebar Qurban"></div></div></div>
+  </div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>5 / 14</span></footer>
+</section>
+
+<section class="scene slide mkt" id="s6" style="--bg:var(--mint);--tt:var(--ink)">
+  <div class="dots"></div>
+  <div class="page">
+    <div class="top">
+      <div class="tl"><span class="tab rv">3. Strategi Aktivasi per Marketplace</span><h2 class="title t-md rv">A. Tokopedia – Main Fundraising Channel</h2></div>
+      <div class="stats">
+        <div class="stat rv"><span class="lb">Potensi awal:</span><b>50%</b><div class="meter"><i style="--w:50%"></i></div></div>
+        <div class="stat rv"><span class="lb">Proporsi normalisasi:</span><b>45,45%</b><div class="meter"><i style="--w:45.45%"></i></div></div>
+      </div>
+    </div>
+    <p class="focus rv"><b>Fokus:</b> Menjadi kanal utama penghimpunan dengan mengoptimalkan katalog campaign, kemudahan transaksi, dan promosi terarah.</p>
+    <ul class="bl"><li class="rv">Membangun atau mengoptimalkan official store/kanal resmi sesuai persyaratan Tokopedia.</li><li class="rv">Menyusun katalog campaign dengan pilihan nominal donasi, apabila mekanisme tersebut diizinkan platform.</li><li class="rv">Mengembangkan campaign tematik: pendidikan anak yatim, pangan dhuafa, pemberdayaan UMKM, dan kemanusiaan.</li><li class="rv">Mengoptimalkan judul, deskripsi, visual, kata kunci, dan kategori produk agar mudah ditemukan.</li><li class="rv">Mendorong trafik melalui media sosial, komunitas, mitra, dan jaringan donatur Rumah Yatim.</li><li class="rv">Menggunakan fitur promosi yang tersedia dan sesuai ketentuan platform.</li></ul>
+    <div class="ticket rv">Contoh nama campaign: “Tokopedia Berbagi Kebaikan”.</div>
+  </div>
+  <div class="stk rv" style="left:716px;top:26px;--r:3deg;font-size:40px">si paling utama 👑</div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>6 / 14</span></footer>
+</section>
+
+<section class="scene slide mkt" id="s7" data-react="1" style="--bg:#ff7a45;--tt:var(--ink)">
+  <div class="dots"></div>
+  <div class="page">
+    <div class="top">
+      <div class="tl"><span class="tab rv">3. Strategi Aktivasi per Marketplace</span><h2 class="title t-md rv">B. Shopee – Mass Market Fundraising</h2></div>
+      <div class="stats">
+        <div class="stat rv"><span class="lb">Potensi awal:</span><b>30%</b><div class="meter"><i style="--w:30%"></i></div></div>
+        <div class="stat rv"><span class="lb">Proporsi normalisasi:</span><b>27,27%</b><div class="meter"><i style="--w:27.27%"></i></div></div>
+      </div>
+    </div>
+    <p class="focus rv"><b>Fokus:</b> Menjangkau calon donatur lebih luas melalui nominal partisipasi terjangkau dan momentum promosi.</p>
+    <ul class="bl"><li class="rv">Menyiapkan pilihan partisipasi nominal kecil, misalnya Rp5.000–Rp50.000, jika fitur dan kebijakan platform memungkinkan.</li><li class="rv">Mengaktifkan campaign pada momentum tanggal kembar dan periode kampanye tematik.</li><li class="rv">Menjalankan campaign rutin seperti Sedekah Jumat atau Berbagi Akhir Pekan.</li><li class="rv">Membuat materi promosi singkat yang mudah dibagikan melalui media sosial dan WhatsApp.</li><li class="rv">Mengajak komunitas, mitra, dan kreator konten untuk memperluas jangkauan.</li><li class="rv">Memanfaatkan voucher atau fitur promosi yang tersedia setelah memeriksa ketentuan dan dampak biayanya.</li></ul>
+    <div class="ticket rv">Contoh nama campaign: “Shopee Berbagi – Satu Klik Sejuta Kebaikan”.</div>
+  </div>
+  <div class="stk rv" style="left:716px;top:26px;--r:3deg;font-size:40px">tanggal kembar gang 🛒</div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>7 / 14</span></footer>
+</section>
+
+<section class="scene slide mkt" id="s8" style="--bg:var(--sky);--tt:var(--ink)">
+  <div class="dots"></div>
+  <div class="page">
+    <div class="top">
+      <div class="tl"><span class="tab rv">3. Strategi Aktivasi per Marketplace</span><h2 class="title t-md rv">C. Blibli – Corporate &amp; Premium Donor Campaign</h2></div>
+      <div class="stats">
+        <div class="stat rv"><span class="lb">Potensi awal:</span><b>15%</b><div class="meter"><i style="--w:15%"></i></div></div>
+        <div class="stat rv"><span class="lb">Proporsi normalisasi:</span><b>13,64%</b><div class="meter"><i style="--w:13.64%"></i></div></div>
+      </div>
+    </div>
+    <p class="focus rv"><b>Fokus:</b> Mengembangkan donasi bernilai menengah dan besar serta peluang kolaborasi perusahaan.</p>
+    <ul class="bl"><li class="rv">Mengangkat campaign pendidikan, perlengkapan sekolah, dan pemberdayaan ekonomi.</li><li class="rv">Menyusun pilihan kontribusi menengah, misalnya Rp50.000, Rp100.000, Rp250.000, dan Rp500.000, sesuai mekanisme yang disetujui.</li><li class="rv">Menawarkan skema campaign kolaborasi perusahaan atau penggalangan kolektif karyawan.</li><li class="rv">Menampilkan tujuan program, kebutuhan penerima manfaat, dokumentasi, dan laporan dampak secara ringkas.</li><li class="rv">Menyusun materi khusus untuk mitra korporasi dan komunitas profesional.</li><li class="rv">Memastikan alur pembayaran, pencairan, dan pelaporan sesuai ketentuan Blibli.</li></ul>
+    <div class="ticket rv">Contoh nama campaign: “Blibli Peduli Sesama”.</div>
+  </div>
+  <div class="stk rv" style="left:716px;top:26px;--r:3deg;font-size:40px">kelas premium 🎩</div>
+  <footer class="ft"><span>Rumah Yatim × Marketplace</span><span>8 / 14</span></footer>
+</section>
+
+<section class="scene slide mkt" id="s9" data-react="1" style="--bg:var(--grape);--tt:var(--paper)">
+  <div class="dots"></div>
+  <div class="page">
+    <div class="top">
+      <div class="tl"><span class="tab rv">3. Strategi Aktivasi per Marketplace</span><h2 class="title t-md rv">D. Lazada – Campaign Expansion Channel</h2></div>
+      <div class="stats">
+        <div class="stat rv"><span class="lb">Potensi awal:</span><b>15%</b><div class="meter"><i style="--w:15%"></i></div></div>
+        <div class="stat rv"><span class="lb">Proporsi normalisasi:</span><b>13,64%</b><div class="meter"><i style="--w:13.64%"></i></div></div>
+      </div>
+    </div>
+    <p class="focus rv"><b>Fokus:</b> Memperluas jangkauan calon donatur baru dan menguji campaign berbasis momentum.</p>
+    <ul class="bl"><li class="rv">Menyusun etalase campaign tematik sesuai kategori dan kebijakan platform.</li><li class="rv">Mengangkat program bantuan anak yatim, dhuafa, paket kebutuhan pokok, dan respons kemanusiaan.</li><li class="rv">Menjalankan promosi pada momentum tanggal kembar dan hari besar.</li><li class="rv">Menggunakan visual dan video storytelling yang menjelaskan masalah, solusi, dan dampak donasi.</li><li class="rv">Mendorong promosi silang melalui Instagram, TikTok, WhatsApp, dan kanal komunikasi Rumah Yatim.</li><li class="rv">Mengevaluasi biaya, performa trafik, konversi, dan pencairan dana secara berkala.</li></ul>
+    <div class="ticket rv">Contoh nama campaign: “Lazada Berbagi Kebahagiaan”.</div>
+  </div>
+  <div class="stk rv" style="left:716px;top:26px;--r:3deg;font-size:40px">si explorer 🧭</div>
+  <footer class="ft" style="color:var(--paper)"><span>Rumah Yatim × Marketplace</span><span>9 / 14</span></footer>
+</section>
+
+<!-- ============ OVERLAY ============ -->
+<div id="lag"><div class="ring"></div><p id="lagp">Memuat…</p><small>mohon tunggu sebentar</small></div>
+<div id="twist"><div class="rays"></div><div class="t1">TIBA-TIBA…</div><div class="t2">PLOT TWIST!</div><div class="t3">Tenang, ini bukan ngeleg. Ini fitur. 😎</div></div>
+<div id="flash"></div>
+<canvas id="fx" width="1920" height="1080"></canvas>
+<div id="prog"><i></i><b>🛒</b></div>
+
+</div></div>
+</div>
+
+<div id="hud" hidden>
+  <button id="b-skip" type="button" hidden>Lewati intro</button>
+  <button id="b-mute" type="button" aria-label="Bisukan suara">Suara: nyala</button>
+  <button id="b-full" type="button" aria-label="Layar penuh">Layar penuh</button>
+</div>
+<script>
+(function () {
+'use strict';
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+var RM = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+var sleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+var vp = $('#viewport'), stage = $('#stage'), world = $('#world'), vid = $('#vid');
+var started = false;
+
+/* ---------- Skala panggung ---------- */
+function fit() {
+  var s = Math.min(vp.clientWidth / 1920, vp.clientHeight / 1080);
+  stage.style.transform = 'translate(-50%,-50%) scale(' + s + ')';
+}
+addEventListener('resize', fit);
+
+/* ---------- Audio ---------- */
+var A = { ctx: null, master: null, buf: {}, ok: false, muted: false };
+var URLS = { song: 'audio/song.mp3', whoosh: 'audio/whoosh.mp3', twist: 'audio/twist.mp3' };
+
+function audioInit() {
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    A.ctx = new AC();
+    A.master = A.ctx.createGain();
+    A.master.connect(A.ctx.destination);
+    var res = A.ctx.resume ? A.ctx.resume() : null;
+    return Promise.resolve(res).then(function () {
+      return Promise.all(Object.keys(URLS).map(function (k) {
+        return fetch(URLS[k]).then(function (r) { return r.arrayBuffer(); })
+          .then(function (b) {
+            return new Promise(function (ok, no) { A.ctx.decodeAudioData(b, ok, no); });
+          })
+          .then(function (d) { A.buf[k] = d; })
+          .catch(function (e) { console.warn('audio gagal:', k, e); });
+      }));
+    }).then(function () { A.ok = true; });
+  } catch (e) { console.warn(e); return Promise.resolve(); }
+}
+
+function play(name, o) {
+  o = o || {};
+  var vol = o.vol == null ? 1 : o.vol;
+  if (A.ok && A.buf[name]) {
+    var s = A.ctx.createBufferSource();
+    s.buffer = A.buf[name];
+    var g = A.ctx.createGain();
+    g.gain.value = vol;
+    s.connect(g); g.connect(A.master);
+    s.start();
+    return {
+      stop: function () { try { s.stop(); } catch (e) {} },
+      fade: function (t) {
+        t = t || 0.6;
+        var n = A.ctx.currentTime;
+        g.gain.cancelScheduledValues(n);
+        g.gain.setValueAtTime(g.gain.value, n);
+        g.gain.linearRampToValueAtTime(0.0001, n + t);
+        setTimeout(function () { try { s.stop(); } catch (e) {} }, t * 1000 + 80);
+      }
+    };
+  }
+  var el = new Audio(URLS[name]);
+  el.volume = Math.min(1, vol);
+  if (!A.muted) { var p = el.play(); if (p && p.catch) p.catch(function () {}); }
+  return { stop: function () { el.pause(); }, fade: function () { el.pause(); } };
+}
+
+function tone(f, f2, t, type, v, delay) {
+  if (!A.ok) return;
+  var c = A.ctx, now = c.currentTime + (delay || 0);
+  var o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'sine';
+  o.frequency.setValueAtTime(f, now);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, now + t);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(v, now + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + t);
+  o.connect(g); g.connect(A.master);
+  o.start(now); o.stop(now + t + 0.05);
+}
+function noise(t, v, delay) {
+  if (!A.ok) return;
+  var c = A.ctx, now = c.currentTime + (delay || 0);
+  var len = Math.max(1, Math.floor(c.sampleRate * t));
+  var b = c.createBuffer(1, len, c.sampleRate), d = b.getChannelData(0);
+  for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  var s = c.createBufferSource(); s.buffer = b;
+  var f = c.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 1200;
+  var g = c.createGain();
+  g.gain.setValueAtTime(v, now);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + t);
+  s.connect(f); f.connect(g); g.connect(A.master);
+  s.start(now);
+}
+var S = {
+  pop: function () { tone(520, 1100, 0.12, 'sine', 0.25); },
+  tick: function () { tone(1800, 0, 0.03, 'square', 0.05); },
+  ding: function () { tone(1318, 0, 0.9, 'sine', 0.22); tone(1976, 0, 0.7, 'sine', 0.1); },
+  tapeStop: function () { tone(520, 35, 0.9, 'sawtooth', 0.2); },
+  thud: function () { tone(140, 38, 0.45, 'sine', 0.55); noise(0.28, 0.3); },
+  roll: function () { for (var i = 0; i < 30; i++) noise(0.07, 0.05 + i * 0.012, i * 0.1); }
+};
+
+/* ---------- Pewaktu ---------- */
+var timers = [];
+function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+function clearAt() { timers.forEach(clearTimeout); timers = []; }
+
+/* ---------- Efek visual ---------- */
+function flash(a) {
+  if (RM) return;
+  $('#flash').animate([{ opacity: a == null ? 0.95 : a }, { opacity: 0 }], { duration: 420, easing: 'ease-out' });
+}
+function shake(k) {
+  if (RM) return;
+  var a = 24 * (k || 1);
+  world.animate([
+    { transform: 'translate(0,0)' },
+    { transform: 'translate(' + (-a) + 'px,' + (a / 2) + 'px)' },
+    { transform: 'translate(' + a + 'px,' + (-a / 2) + 'px)' },
+    { transform: 'translate(' + (-a / 2) + 'px,' + (-a) + 'px)' },
+    { transform: 'translate(' + (a / 2) + 'px,' + a + 'px)' },
+    { transform: 'translate(0,0)' }
+  ], { duration: 480, easing: 'ease-out' });
+}
+var fx = $('#fx'), fc = fx.getContext('2d'), parts = [], raf = 0;
+function confetti(x, y, n, spread) {
+  if (RM) return;
+  var cols = ['#ffc93c', '#ff4f2e', '#35d49b', '#59a8ff', '#7b4dff', '#ff8dc3', '#fffaf0'];
+  for (var i = 0; i < n; i++) {
+    var a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * (spread || 1);
+    var sp = 14 + Math.random() * 22;
+    parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+      w: 12 + Math.random() * 14, h: 8 + Math.random() * 10, c: cols[(Math.random() * cols.length) | 0], life: 0, round: Math.random() < 0.3 });
+  }
+  if (!raf) raf = requestAnimationFrame(loopFx);
+}
+function loopFx() {
+  fc.clearRect(0, 0, 1920, 1080);
+  parts = parts.filter(function (p) { return p.life < 150 && p.y < 1200; });
+  parts.forEach(function (p) {
+    p.life++; p.vy += 0.75; p.vx *= 0.985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+    fc.save(); fc.translate(p.x, p.y); fc.rotate(p.r); fc.fillStyle = p.c;
+    if (p.round) { fc.beginPath(); fc.arc(0, 0, p.w / 2, 0, 6.3); fc.fill(); } else fc.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+    fc.restore();
+  });
+  raf = parts.length ? requestAnimationFrame(loopFx) : 0;
+}
+function reactions() {
+  if (RM) return;
+  var em = ['🔥', '👏', '😳', '🤯', '🥹', '💸', '🎯'];
+  for (var i = 0; i < 6; i++) {
+    (function (i) {
+      at(900 + i * 260, function () {
+        var e = document.createElement('div');
+        e.className = 'react';
+        e.textContent = em[(Math.random() * em.length) | 0];
+        e.style.right = (50 + Math.random() * 220) + 'px';
+        e.style.setProperty('--dx', ((Math.random() - 0.5) * 160) + 'px');
+        world.appendChild(e);
+        setTimeout(function () { e.remove(); }, 3300);
+      });
+    })(i);
+  }
+}
+
+/* ---------- Persiapan teks ---------- */
+function prepText() {
+  $$('[data-split]').forEach(function (el) {
+    var words = el.textContent.trim().split(/\s+/);
+    el.textContent = '';
+    words.forEach(function (w, i) {
+      var s = document.createElement('span');
+      s.className = 'w'; s.textContent = w;
+      el.appendChild(s);
+      if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
+    });
+  });
+  $$('.teaser').forEach(function (t) {
+    var i = 0;
+    $$('.w', t).forEach(function (w) { w.style.setProperty('--i', i++); });
+    var sub = $('.sub', t);
+    if (sub) sub.style.setProperty('--sd', i);
+  });
+  $$('.mq').forEach(function (m) {
+    var txt = m.getAttribute('data-t'), h = '';
+    var one = '<span>' + txt.replace(/ /g, '&nbsp;') + '</span>';
+    var chunk = ''; for (var k = 0; k < 6; k++) chunk += one;
+    m.innerHTML = '<div class="trk">' + chunk + chunk + '</div>';
+  });
+  $$('.slide').forEach(function (s) {
+    $$('.rv', s).forEach(function (n, i) { if (!n.style.getPropertyValue('--d')) n.style.setProperty('--d', i * 90); });
+  });
+  $$('.cast').forEach(function (c) {
+    var nm = $('.nm', c), name = c.getAttribute('data-name');
+    name.split('').forEach(function (ch) {
+      var s = document.createElement('span');
+      s.innerHTML = ch === ' ' ? '&nbsp;' : ch;
+      nm.appendChild(s);
+    });
+    nm.setAttribute('aria-label', name);
+  });
+}
+
+/* ---------- Transisi ---------- */
+var E = 'cubic-bezier(.77,0,.18,1)';
+var TR = {
+  fade: function (d) { return { to: [[{ opacity: 0 }, { opacity: 1 }], { duration: d, easing: 'ease' }] }; },
+  slideL: function (d) { return { to: [[{ transform: 'translateX(100%)' }, { transform: 'none' }], { duration: d, easing: E }],
+    from: [[{ transform: 'none', opacity: 1 }, { transform: 'translateX(-28%) scale(.94)', opacity: 0.35 }], { duration: d, easing: E }] }; },
+  slideR: function (d) { return { to: [[{ transform: 'translateX(-100%)' }, { transform: 'none' }], { duration: d, easing: E }],
+    from: [[{ transform: 'none', opacity: 1 }, { transform: 'translateX(28%) scale(.94)', opacity: 0.35 }], { duration: d, easing: E }] }; },
+  zoom: function (d) { return { to: [[{ transform: 'scale(.35)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: d, easing: 'cubic-bezier(.2,.9,.2,1)' }],
+    from: [[{ transform: 'none', opacity: 1 }, { transform: 'scale(1.35)', opacity: 0 }], { duration: d, easing: 'ease-in' }] }; },
+  circle: function (d) { return { to: [[{ clipPath: 'circle(0% at 50% 50%)' }, { clipPath: 'circle(78% at 50% 50%)' }], { duration: d, easing: E }] }; },
+  curtain: function (d) { return { to: [[{ clipPath: 'inset(0 50% 0 50%)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: d, easing: E }] }; },
+  wipe: function (d) { return { to: [[{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: d, easing: E }] }; },
+  drop: function (d) { return { to: [[{ transform: 'translateY(-100%)' }, { transform: 'none' }], { duration: d + 150, easing: 'cubic-bezier(.3,1.5,.5,1)' }],
+    from: [[{ transform: 'none', opacity: 1 }, { transform: 'translateY(14%)', opacity: 0.4 }], { duration: d, easing: E }] }; },
+  spin: function (d) { return { to: [[{ transform: 'rotate(-300deg) scale(0)', opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: d, easing: 'cubic-bezier(.2,.9,.2,1)' }],
+    from: [[{ opacity: 1 }, { opacity: 0 }], { duration: d }] }; },
+  flip: function (d) { return { to: [[{ transform: 'rotateY(-95deg)', opacity: 0.2 }, { transform: 'none', opacity: 1 }], { duration: d, easing: E }],
+    from: [[{ transform: 'none', opacity: 1 }, { transform: 'rotateY(95deg)', opacity: 0.2 }], { duration: d, easing: E }] }; },
+  glitch: function (d) { return { to: [[
+    { opacity: 0, transform: 'translateX(-40px)', filter: 'hue-rotate(90deg) saturate(3)' },
+    { opacity: 1, transform: 'translateX(30px)', filter: 'invert(1)', offset: 0.2 },
+    { opacity: 0.4, transform: 'translateX(-20px)', filter: 'none', offset: 0.4 },
+    { opacity: 1, transform: 'translateX(14px)', filter: 'hue-rotate(200deg)', offset: 0.6 },
+    { opacity: 1, transform: 'none', filter: 'none' }], { duration: d, easing: 'steps(6,end)' }] }; }
+};
+
+function settle(fromEl, toEl, anims) {
+  if (fromEl) fromEl.classList.remove('on', 'play');
+  toEl.classList.remove('entering');
+  toEl.classList.add('on');
+  anims.forEach(function (a) { a.cancel(); });
+}
+
+function transition(fromEl, toEl, name, step) {
+  toEl.classList.add('entering', 'play');
+  if (!step.silent) play('whoosh', { vol: 0.85 });
+  if (step.onStart) step.onStart(toEl);
+  var dur = RM ? 250 : (step.dur || 850);
+  var def = (RM || !fromEl) ? TR.fade : (TR[name] || TR.fade);
+  var spec = def(dur), anims = [];
+  anims.push(toEl.animate(spec.to[0], Object.assign({ fill: 'both' }, spec.to[1])));
+  if (fromEl && spec.from) anims.push(fromEl.animate(spec.from[0], Object.assign({ fill: 'both' }, spec.from[1])));
+  return Promise.all(anims.map(function (a) { return a.finished.catch(function () {}); }))
+    .then(function () { settle(fromEl, toEl, anims); });
+}
+
+/* Transisi yang pura-pura ngeleg lalu kejutan */
+async function lagTransition(fromEl, toEl) {
+  toEl.classList.add('entering', 'play');
+  var w = play('whoosh', { vol: 0.9 });
+  var d = 900, spec = TR.slideL(d);
+  var anims = [
+    toEl.animate(spec.to[0], { duration: d, easing: 'linear', fill: 'both' }),
+    fromEl.animate(spec.from[0], { duration: d, easing: 'linear', fill: 'both' })
+  ];
+  await sleep(430);
+  anims.forEach(function (a) { a.pause(); });
+  w.stop(); S.tapeStop();
+  world.classList.add('frozen');
+  var lag = $('#lag'), lp = $('#lagp');
+  lp.textContent = 'Memuat…';
+  lag.classList.add('on');
+  await sleep(1500);
+  lp.textContent = 'Tidak merespons…';
+  await sleep(1400);
+  lag.classList.remove('on');
+  flash(); shake(1.2);
+  play('twist', { vol: 1 }); S.thud();
+  $('#twist').classList.add('on');
+  await sleep(2700);
+  $('#twist').classList.remove('on');
+  world.classList.remove('frozen');
+  play('whoosh', { vol: 0.85 });
+  anims.forEach(function (a) { a.play(); });
+  await Promise.all(anims.map(function (a) { return a.finished.catch(function () {}); }));
+  settle(fromEl, toEl, anims);
+}
+
+/* ---------- Langkah-langkah ---------- */
+var steps = [
+  { id: 'intro', el: '#intro', kind: 'intro', tr: 'fade', silent: true, onStart: introRun },
+  { id: 't1', el: '#t1', kind: 'teaser', tr: 'zoom', auto: 3400 },
+  { id: 's1', el: '#s1', kind: 'slide', n: 1, tr: 'circle' },
+  { id: 't2', el: '#t2', kind: 'teaser', tr: 'slideL', auto: 3300 },
+  { id: 's2', el: '#s2', kind: 'slide', n: 2, tr: 'drop' },
+  { id: 't3', el: '#t3', kind: 'teaser', tr: 'curtain', auto: 3500 },
+  { id: 's3', el: '#s3', kind: 'slide', n: 3, tr: 'flip' },
+  { id: 'wrong', el: '#wrong', kind: 'twist', tr: 'zoom', auto: 7600, onEnter: wrongRun },
+  { id: 't4', el: '#t4', kind: 'teaser', tr: 'glitch', auto: 3500 },
+  { id: 's4', el: '#s4', kind: 'slide', n: 4, tr: 'wipe' },
+  { id: 's5', el: '#s5', kind: 'slide', n: 5, tr: 'slideL' },
+  { id: 't5', el: '#t5', kind: 'teaser', tr: 'spin', auto: 4600 },
+  { id: 's6', el: '#s6', kind: 'slide', n: 6, tr: 'circle' },
+  { id: 's7', el: '#s7', kind: 'slide', n: 7, tr: 'flip' },
+  { id: 's8', el: '#s8', kind: 'slide', n: 8, tr: 'slideL', lag: true },
+  { id: 's9', el: '#s9', kind: 'slide', n: 9, tr: 'drop' },
+  { id: 't6', el: '#t6', kind: 'teaser', tr: 'curtain', auto: 3600 },
+  { id: 's10', el: '#s10', kind: 'slide', n: 10, tr: 'wipe' },
+  { id: 's11', el: '#s11', kind: 'slide', n: 11, tr: 'zoom' },
+  { id: 't7', el: '#t7', kind: 'teaser', tr: 'glitch', auto: 4300, onEnter: drumRun },
+  { id: 's12', el: '#s12', kind: 'slide', n: 12, tr: 'circle', onStart: moneyPrep, onEnter: moneyRun },
+  { id: 't8', el: '#t8', kind: 'teaser', tr: 'zoom', auto: 4200 },
+  { id: 's13', el: '#s13', kind: 'slide', n: 13, tr: 'slideL' },
+  { id: 't9', el: '#t9', kind: 'teaser', tr: 'spin', auto: 3600 },
+  { id: 's14', el: '#s14', kind: 'slide', n: 14, tr: 'drop', onEnter: finaleRun }
+];
+var cur = -1, busy = false, autoT = 0;
+var TOTAL = 14;
+
+function idxOf(id) { for (var i = 0; i < steps.length; i++) if (steps[i].id === id) return i; return -1; }
+
+async function go(i, d) {
+  d = d || 1;
+  if (busy || i < 0 || i >= steps.length || i === cur) return;
+  busy = true; clearAt(); clearTimeout(autoT); finaleTok++;
+  var to = steps[i], from = cur >= 0 ? steps[cur] : null;
+  var toEl = $(to.el), fromEl = from ? $(from.el) : null;
+  if (from && from.id === 's14') { try { vid.pause(); } catch (e) {} }
+  toEl.classList.remove('play'); void toEl.offsetWidth;
+  try {
+    if (to.lag && d > 0 && !to.lagDone && fromEl) { to.lagDone = true; await lagTransition(fromEl, toEl); }
+    else await transition(fromEl, toEl, d > 0 ? to.tr : 'slideR', to);
+  } catch (e) { console.warn(e); }
+  cur = i; busy = false;
+  hudFor(to);
+  if (to.kind === 'slide' && toEl.getAttribute('data-react')) reactions();
+  if (to.onEnter) to.onEnter(toEl);
+  if (to.auto) autoT = setTimeout(function () { if (!busy) next(); }, to.auto);
+}
+function next() { if (cur >= 0 && steps[cur].kind === 'intro') return; go(cur + 1, 1); }
+function prev() {
+  if (cur < 0 || steps[cur].kind === 'intro') return;
+  for (var j = cur - 1; j >= 0; j--) if (steps[j].kind === 'slide') { go(j, -1); return; }
+}
+
+function hudFor(st) {
+  $('#b-skip').hidden = st.kind !== 'intro';
+  var p = $('#prog');
+  if (st.n) {
+    p.classList.add('show');
+    var pc = (st.n / TOTAL * 100) + '%';
+    $('i', p).style.width = pc; $('b', p).style.left = pc;
+  } else p.classList.remove('show');
+}
+
+/* ---------- Intro sinematik ---------- */
+var grainT = 0;
+function grainOn() {
+  var c = $('#grain'), x = c.getContext('2d');
+  grainT = setInterval(function () {
+    var im = x.createImageData(480, 270), d = im.data;
+    for (var i = 0; i < d.length; i += 4) { var v = Math.random() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    x.putImageData(im, 0, 0);
+  }, 100);
+}
+var songH = null;
+function show(sel, on) { $(sel).classList.toggle('show', on); }
+
+function castIn(k) {
+  var prevC = $('.cast.show');
+  if (prevC) { prevC.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(function () { prevC.classList.remove('show'); }); }
+  var el = $('#c' + (k + 1)); el.classList.add('show');
+  flash(0.55); play('whoosh', { vol: 0.5 });
+  var ph = $('.ph', el), img = $('img', ph);
+  var ent = [
+    function () { ph.animate([
+      { transform: 'translateX(-1500px) rotate(-14deg)', filter: 'blur(18px)', opacity: 0 },
+      { transform: 'translateX(34px) rotate(2deg)', filter: 'blur(0)', opacity: 1, offset: 0.7 },
+      { transform: 'none', opacity: 1 }], { duration: 1100, easing: 'cubic-bezier(.2,.8,.2,1)' }); },
+    function () { ph.animate([
+      { transform: 'translateY(-1200px) rotate(10deg)', opacity: 1 },
+      { transform: 'translateY(0) rotate(0)', offset: 0.5 },
+      { transform: 'translateY(-110px) rotate(0)', offset: 0.68 },
+      { transform: 'translateY(0) rotate(0)', offset: 0.82 },
+      { transform: 'translateY(-26px)', offset: 0.91 },
+      { transform: 'none' }], { duration: 1400, easing: 'ease-in' }); at(700, function () { S.thud(); shake(0.5); }); },
+    function () { ph.animate([
+      { transform: 'scale(3.4)', filter: 'blur(26px)', opacity: 0 },
+      { transform: 'scale(.94)', filter: 'blur(0)', opacity: 1, offset: 0.6 },
+      { transform: 'scale(1.04)', offset: 0.8 },
+      { transform: 'none' }], { duration: 1000, easing: 'cubic-bezier(.2,.8,.2,1)' }); at(600, function () { shake(0.9); S.thud(); }); },
+    function () { ph.animate([
+      { transform: 'perspective(1400px) rotateY(180deg) scale(.3)', opacity: 0 },
+      { transform: 'perspective(1400px) rotateY(0deg) scale(1.06)', opacity: 1, offset: 0.75 },
+      { transform: 'none', opacity: 1 }], { duration: 1200, easing: 'cubic-bezier(.2,.8,.2,1)' }); at(800, function () { confetti(1300, 600, 70, 1.4); S.pop(); }); }
+  ];
+  ent[k]();
+  img.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }], { duration: 4200, easing: 'linear', fill: 'forwards' });
+  $$('.nm span', el).forEach(function (s, i) {
+    s.animate([{ opacity: 0, transform: 'translateY(70px) rotate(8deg)' }, { opacity: 1, transform: 'none' }],
+      { duration: 480, delay: 550 + i * 60, fill: 'both', easing: 'cubic-bezier(.34,1.56,.64,1)' });
+  });
+  var ul = $('.ul', el), w = Math.min(760, $('.nm', el).scrollWidth);
+  ul.animate([{ width: '0px' }, { width: w + 'px' }], { duration: 700, delay: 1000, fill: 'forwards', easing: 'ease-out' });
+  $('.tg', el).animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }], { duration: 600, delay: 1500, fill: 'forwards' });
+}
+
+function groupIn() {
+  var prevC = $('.cast.show');
+  if (prevC) { prevC.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, fill: 'forwards' }).finished.then(function () { prevC.classList.remove('show'); }); }
+  show('#in-group', true);
+  flash(0.6); play('whoosh', { vol: 0.5 });
+  $$('.gp').forEach(function (g, i) {
+    var r = g.getAttribute('data-r');
+    g.animate([{ opacity: 0, transform: 'translateY(160px) scale(.7) rotate(' + (i % 2 ? 14 : -14) + 'deg)' },
+      { opacity: 1, transform: 'translateY(0) scale(1) rotate(' + r + 'deg)' }],
+      { duration: 750, delay: 250 + i * 220, fill: 'forwards', easing: 'cubic-bezier(.34,1.56,.64,1)' });
+  });
+  $('#in-group h2').animate([{ opacity: 0, transform: 'scale(1.6)' }, { opacity: 1, transform: 'none' }], { duration: 600, fill: 'both', easing: 'cubic-bezier(.2,.8,.2,1)' });
+  $('.gline').animate([{ opacity: 0 }, { opacity: 1 }], { duration: 700, delay: 1700, fill: 'forwards' });
+  at(1200, function () { S.ding(); confetti(960, 700, 160, 1.6); });
+}
+
+function introRun() {
+  grainOn();
+  songH = play('song', { vol: 1 });
+  at(300, function () { show('#in-pres', true); });
+  at(2300, function () { show('#in-pres', false); show('#in-title', true); S.pop(); });
+  at(4000, function () { show('#in-title', false); });
+  at(4200, function () { castIn(0); });
+  at(8100, function () { castIn(1); });
+  at(12000, function () { castIn(2); });
+  at(15900, function () { castIn(3); });
+  at(19700, groupIn);
+  at(21800, function () { if (songH) songH.fade(1.1); });
+  at(22900, endIntro);
+}
+function endIntro() {
+  clearInterval(grainT);
+  var i = idxOf('t1');
+  cur = 0; busy = false;
+  go(i, 1);
+}
+function skipIntro() {
+  if (cur !== 0) return;
+  clearAt();
+  if (songH) songH.fade(0.5);
+  endIntro();
+}
+
+/* ---------- Kejutan: slide nyasar ---------- */
+function wrongRun() {
+  var el = $('#wrong');
+  el.classList.remove('oops-on', 'glitch');
+  $$('li', el).forEach(function (li, i) {
+    li.classList.remove('on');
+    at(500 + i * 900, function () { li.classList.add('on'); S.pop(); });
+  });
+  at(4600, function () { S.tapeStop(); el.classList.add('glitch'); });
+  at(5100, function () { el.classList.add('oops-on'); S.thud(); shake(1); });
+}
+
+/* ---------- Drum roll sebelum angka ---------- */
+function drumRun() {
+  S.roll();
+  at(3150, function () { S.thud(); shake(0.8); flash(0.4); });
+}
+
+/* ---------- Hitung naik di slide keuangan ---------- */
+function moneyPrep() {
+  var el = $('#amt');
+  el.textContent = el.getAttribute('data-final').replace(/\d+,\d+/, '0,00');
+}
+function moneyRun() {
+  var el = $('#amt'), fin = el.getAttribute('data-final');
+  at(1000, function () {
+    var t0 = performance.now(), dur = 1700, tk = setInterval(S.tick, 85);
+    function stepF(now) {
+      var p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+      if (p < 1) {
+        el.textContent = fin.replace(/\d+,\d+/, (5 * e).toFixed(2).replace('.', ','));
+        requestAnimationFrame(stepF);
+      } else {
+        clearInterval(tk);
+        el.textContent = fin;
+        S.ding(); confetti(560, 620, 150, 1.5);
+      }
+    }
+    requestAnimationFrame(stepF);
+  });
+}
+
+/* ---------- Penutup: ngeleg lagi, lalu video ---------- */
+var finaleTok = 0, staticT = 0;
+function staticOn() {
+  var c = $('#static'), x = c.getContext('2d');
+  clearInterval(staticT);
+  staticT = setInterval(function () {
+    var im = x.createImageData(160, 100), d = im.data;
+    for (var i = 0; i < d.length; i += 4) { var v = 40 + Math.random() * 200; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+    x.putImageData(im, 0, 0);
+  }, 90);
+}
+async function finaleRun() {
+  var tok = ++finaleTok, tv = $('#tv'), rb = $('#replay');
+  tv.classList.remove('on'); rb.classList.remove('show');
+  try { vid.pause(); vid.currentTime = 0; } catch (e) {}
+  staticOn();
+  await sleep(2600); if (tok !== finaleTok) return;
+  S.tapeStop(); world.classList.add('frozen');
+  var lag = $('#lag'); $('#lagp').textContent = 'Memuat…'; lag.classList.add('on');
+  await sleep(2600); if (tok !== finaleTok) { lag.classList.remove('on'); world.classList.remove('frozen'); return; }
+  lag.classList.remove('on'); world.classList.remove('frozen');
+  flash(); S.ding(); confetti(1300, 560, 220, 1.6); shake(0.8);
+  tv.classList.add('on'); clearInterval(staticT);
+  playVideo();
+}
+function playVideo() {
+  vid.muted = A.muted;
+  try { vid.currentTime = 0; } catch (e) {}
+  var p = vid.play();
+  if (p && p.catch) p.catch(function () { vid.muted = true; vid.play().catch(function () {}); });
+}
+vid.addEventListener('ended', function () { $('#replay').classList.add('show'); confetti(1300, 700, 120, 1.6); S.ding(); });
+$('#replay').addEventListener('click', function (e) { e.stopPropagation(); $('#replay').classList.remove('show'); playVideo(); });
+
+/* ---------- Kontrol ---------- */
+function toggleMute() {
+  A.muted = !A.muted;
+  if (A.master) A.master.gain.value = A.muted ? 0 : 1;
+  vid.muted = A.muted;
+  $('#b-mute').textContent = A.muted ? 'Suara: mati' : 'Suara: nyala';
+}
+function toggleFull() {
+  if (document.fullscreenElement) { document.exitFullscreen(); return; }
+  var r = vp.requestFullscreen ? vp.requestFullscreen() : null;
+  if (r && r.catch) r.catch(function () {});
+}
+$('#b-mute').addEventListener('click', function (e) { e.stopPropagation(); toggleMute(); });
+$('#b-full').addEventListener('click', function (e) { e.stopPropagation(); toggleFull(); });
+$('#b-skip').addEventListener('click', function (e) { e.stopPropagation(); skipIntro(); });
+
+addEventListener('keydown', function (e) {
+  if (!started) return;
+  var k = e.key;
+  if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter') { e.preventDefault(); next(); }
+  else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); prev(); }
+  else if (k === 'f' || k === 'F') toggleFull();
+  else if (k === 'm' || k === 'M') toggleMute();
+});
+vp.addEventListener('click', function (e) {
+  if (!started || e.target.closest('button')) return;
+  var r = vp.getBoundingClientRect();
+  if ((e.clientX - r.left) / r.width < 0.22) prev(); else next();
+});
+var idleT = 0;
+function wake() {
+  $('#hud').classList.remove('idle'); vp.classList.remove('idle');
+  clearTimeout(idleT);
+  idleT = setTimeout(function () { $('#hud').classList.add('idle'); vp.classList.add('idle'); }, 2600);
+}
+addEventListener('mousemove', wake);
+addEventListener('touchstart', wake, { passive: true });
+
+/* ---------- Mulai ---------- */
+$('#start').addEventListener('click', function () {
+  var b = $('#start');
+  b.disabled = true; $('#gload').hidden = false;
+  audioInit().then(function () {
+    $('#gate').hidden = true;
+    vp.hidden = false; $('#hud').hidden = false;
+    started = true; fit(); wake();
+    go(0, 1);
+  });
+});
+
+prepText();
+
+/* Alat uji: loncat langsung ke slide tertentu tanpa transisi. */
+window.__deck = {
+  steps: steps,
+  jump: function (id) {
+    clearAt(); clearTimeout(autoT); finaleTok++;
+    $$('.scene').forEach(function (s) { s.classList.remove('on', 'play', 'entering'); });
+    var i = idxOf(id), el = $(steps[i].el);
+    el.classList.add('on', 'play'); cur = i; busy = false; started = true;
+    vp.hidden = false; $('#gate').hidden = true; fit();
+    hudFor(steps[i]);
+  },
+  fit: fit
+};
+})();
+
+</script>
+</body>
+</html>
